@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 0;
 const VERSION_MINOR = 2;
-const VERSION_PATCH = 0;
+const VERSION_PATCH = 1;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -335,21 +335,21 @@ QBField.FormatValue = (field, value) => {
 					value = moment.utc(value);
 				}
 
-				value = moment.format();
+				value = value.format();
 			break;
 			case 'timestamp':
 				if(!(value instanceof moment)){
 					value = moment(value);
 				}
 
-				value = moment.format();
+				value = value.format();
 			break;
 			case 'timeofday':
 				if(!(value instanceof moment)){
 					value = moment.utc(value);
 				}
 
-				value = moment.format('hh:mm:ss');
+				value = value.format('hh:mm:ss');
 			break;
 		}
 
