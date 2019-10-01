@@ -1,0 +1,59 @@
+{
+  "name": "qb-field",
+  "private": false,
+  "version": "0.1.0",
+  "description": "A lightweight abstraction layer for QuickBase",
+  "keywords": [
+    "QuickBase",
+    "quickbase",
+    "qb",
+    "api",
+    "QBField",
+    "qbfield",
+    "qb-field"
+  ],
+  "homepage": "https://github.com/tflanagan/node-qb-field",
+  "bugs": {
+    "url": "https://github.com/tflanagan/node-qb-field/issues",
+    "email": "contact@tristianflanagan.com"
+  },
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Tristian Flanagan",
+    "url": "https://github.com/tflanagan",
+    "email": "contact@tristianflanagan.com"
+  },
+  "maintainers": [
+    {
+      "name": "Tristian Flanagan",
+      "url": "https://github.com/tflanagan",
+      "email": "contact@tristianflanagan.com"
+    }
+  ],
+  "contributors": [
+    "Tristian Flanagan <contact@tristianflanagan.com> (https://github.com/tflanagan)"
+  ],
+  "main": "QBField.js",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:tflanagan/node-qb-field.git"
+  },
+  "scripts": {
+    "build": "node build.js"
+  },
+  "dependencies": {
+    "lodash.merge": "^4.6.2",
+    "quickbase": "^2.11.0"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-react": "^6.24.1",
+    "browserify": "^16.5.0",
+    "minify": "^4.1.3"
+  },
+  "engines": {
+    "node": ">=4.0.*"
+  },
+  "git": "git@github.com:tflanagan/node-qb-field.git"
+}
