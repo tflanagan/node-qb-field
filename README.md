@@ -74,3 +74,12 @@ Sets the `fid` setting.
  - `attributesToConvert`: array, optional
 
  returns the field as a JSON object
+
+### Static Methods
+-------
+#### `QBField.NewField(options, attributes)`
+ - `options`: obj, required
+ - `attributes`: obj, required
+
+Returns a new QBField instance built off of `options`, that inherits
+configuration data from the passed in `attributes` argument.
