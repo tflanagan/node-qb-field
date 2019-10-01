@@ -1,7 +1,7 @@
 {
   "name": "qb-field",
   "private": false,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A lightweight abstraction layer for QuickBase",
   "keywords": [
     "QuickBase",
@@ -43,6 +43,7 @@
   },
   "dependencies": {
     "lodash.merge": "^4.6.2",
+    "moment": "^2.24.0",
     "quickbase": "^2.11.0"
   },
   "devDependencies": {

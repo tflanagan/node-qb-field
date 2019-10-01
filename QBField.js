@@ -2,11 +2,12 @@
 
 /* Versioning */
 const VERSION_MAJOR = 0;
-const VERSION_MINOR = 1;
+const VERSION_MINOR = 2;
 const VERSION_PATCH = 0;
 
 /* Dependencies */
 const merge = require('lodash.merge');
+const moment = require('moment');
 const QuickBase = require('quickbase');
 
 /* Default Settings */
@@ -247,6 +248,117 @@ QBField.NewField = (options, attributes) => {
 	});
 
 	return field;
+};
+
+// Used when loading from Quick Base
+QBField.ParseValue = (field, value) => {
+	if(value){
+		switch(field.get('field_type')){
+			case 'duration':
+				if(!(value instanceof moment)){
+					value = moment.duration(value, 'milliseconds');
+				}
+			break;
+			case 'multitext':
+			case 'multiuserid':
+				if(!(value instanceof Array)){
+					value = value.split(';');
+				}
+			break;
+			case 'timeofday':
+			case 'date':
+				if(!(value instanceof moment)){
+					value = moment.utc(value);
+				}
+			break;
+			case 'timestamp':
+				if(!(value instanceof moment)){
+					value = moment(value);
+				}
+			break;
+			case 'percent':
+				value = (+(value || 0)) * 100;
+			break;
+		}
+	}
+
+	return value;
+};
+
+// Used when saving to Quick Base
+QBField.FormatValue = (field, value) => {
+	if(value){
+		switch(field.get('field_type')){
+			case 'duration':
+				if(!moment.isDuration(value)){
+					value = moment.duration(value);
+				}
+
+				switch(this._field.get('format')){
+					case 1: // Seconds
+						value = value.asSeconds();
+					break;
+					case 2: // Minutes
+						value = value.asMinutes();
+					break;
+					case 3: // Hours
+						value = value.asHours();
+					break;
+					case 4: // Days
+					case 6: // Smart Units
+						value = value.asDays();
+					break;
+					case 5: // Weeks
+						value = value.asWeeks();
+					break;
+					case 7: // HH:MM
+					case 10: // :MM
+						value = value.format('hh:mm');
+					break;
+					case 8: // HH:MM:SS
+					case 9: // :MM:SS
+						value = value.format('hh:mm:ss');
+					break;
+					default:
+						value = value.asMilliseconds();
+					break;
+				}
+			break;
+			case 'multitext':
+			case 'multiuserid':
+				if(value instanceof Array){
+					value = value.join(';');
+				}
+			break;
+			case 'date':
+				if(!(value instanceof moment)){
+					value = moment.utc(value);
+				}
+
+				value = moment.format();
+			break;
+			case 'timestamp':
+				if(!(value instanceof moment)){
+					value = moment(value);
+				}
+
+				value = moment.format();
+			break;
+			case 'timeofday':
+				if(!(value instanceof moment)){
+					value = moment.utc(value);
+				}
+
+				value = moment.format('hh:mm:ss');
+			break;
+		}
+
+		if(value instanceof Array){
+			value = value.join(';');
+		}
+	}
+
+	return value;
 };
 
 /* Expose Properties */
