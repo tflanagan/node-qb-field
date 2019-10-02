@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 0;
 const VERSION_MINOR = 2;
-const VERSION_PATCH = 1;
+const VERSION_PATCH = 2;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -294,7 +294,7 @@ QBField.FormatValue = (field, value) => {
 					value = moment.duration(value);
 				}
 
-				switch(this._field.get('format')){
+				switch(field.get('format')){
 					case 1: // Seconds
 						value = value.asSeconds();
 					break;
@@ -313,11 +313,11 @@ QBField.FormatValue = (field, value) => {
 					break;
 					case 7: // HH:MM
 					case 10: // :MM
-						value = value.format('hh:mm');
+						value = durationToTime(value, 'hh:mm');
 					break;
 					case 8: // HH:MM:SS
 					case 9: // :MM:SS
-						value = value.format('hh:mm:ss');
+						value = durationToTime(value, 'hh:mm:ss');
 					break;
 					default:
 						value = value.asMilliseconds();
@@ -335,21 +335,21 @@ QBField.FormatValue = (field, value) => {
 					value = moment.utc(value);
 				}
 
-				value = value.format();
+				value = value.valueOf();
 			break;
 			case 'timestamp':
 				if(!(value instanceof moment)){
 					value = moment(value);
 				}
 
-				value = value.format();
+				value = value.valueOf();
 			break;
 			case 'timeofday':
 				if(!(value instanceof moment)){
 					value = moment.utc(value);
 				}
 
-				value = value.format('hh:mm:ss');
+				value = value.format('HH:mm:ss');
 			break;
 		}
 
@@ -359,6 +359,38 @@ QBField.FormatValue = (field, value) => {
 	}
 
 	return value;
+};
+
+/* Helpers */
+const durationToTime = (duration, format) => {
+	let hrs = 0, min = 0,
+		sec = Math.round(duration.asSeconds());
+
+	if(sec >= 3600){
+		hrs = Math.floor(sec / 3600);
+
+		sec -= hrs * 3600;
+	}
+
+	if(sec >= 60){
+		min = Math.floor(sec / 60);
+
+		sec -= min * 60;
+	}
+
+	switch(format){
+		case 'hh:mm':
+			parts.push(hrs, min);
+		break;
+		case 'hh:mm:ss':
+		default:
+			parts.push(hrs, min, sec);
+		break;
+	}
+
+	return parts.map((part) => {
+		return ('0' + part).slice(-2);
+	}).join(':');
 };
 
 /* Expose Properties */
