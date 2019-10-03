@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 0;
 const VERSION_MINOR = 2;
-const VERSION_PATCH = 2;
+const VERSION_PATCH = 3;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -278,6 +278,9 @@ QBField.ParseValue = (field, value) => {
 			break;
 			case 'percent':
 				value = (+(value || 0)) * 100;
+			break;
+			case 'rating':
+				value = (+(value || 0));
 			break;
 		}
 	}
