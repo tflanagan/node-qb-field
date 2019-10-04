@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 0;
 const VERSION_MINOR = 2;
-const VERSION_PATCH = 3;
+const VERSION_PATCH = 4;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -139,33 +139,43 @@ class QBField {
 				fid: this.getFid()
 			};
 
+			let choices;
+
 			Object.keys(this._data).filter((attribute) => {
 				return !attributesToSave || attributesToSave.indexOf(attribute) !== -1;
 			}).forEach((attribute) => {
-				options[attribute] = this.get(attribute);
+				const value = this.get(attribute);
+
+				if(attribute === 'choices'){
+					choices = value;
+				}else{
+					options[attribute] = value;
+				}
 			});
 
-			return this._qb.api('API_SetFieldProperties', options).then(() => {
-				if(!options.hasOwnProperty('choices')){
-					return this;
-				}
+			const promises = [];
 
+			if(Object.keys(options).length > 2){
+				promises.push(this._qb.api('API_SetFieldProperties', options));
+			}
+
+			if(choices){
 				const toRemove = [];
 				const toAdd = [];
 
-				options.choices.forEach((choice) => {
+				choices.forEach((choice) => {
 					if(this._baselineChoices.indexOf(choice) === -1){
 						toAdd.push(choice);
 					}
 				});
 
 				this._baselineChoices.forEach((choice) => {
-					if(options.choices.indexOf(choice) === -1){
+					if(choices.indexOf(choice) === -1){
 						toRemove.push(choice);
 					}
 				});
 
-				return QuickBase.Promise.all([
+				promises.push(QuickBase.Promise.all([
 					(toAdd.length > 0 ? this._qb.api('API_FieldAddChoices', {
 						dbid: this.getDBID(),
 						fid: this.getFid(),
@@ -177,11 +187,13 @@ class QBField {
 						choice: toRemove
 					}) : QuickBase.Promise.resolve())
 				]).then(() => {
-					this._baselineChoices = options.choices;
+					this._baselineChoices = [].concat(choices);
 
 					return this;
-				});
-			});
+				}));
+			}
+
+			return QuickBase.Promise.all(promises);
 		};
 
 		if(this.getFid() > 0){
