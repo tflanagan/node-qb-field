@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 0;
 const VERSION_MINOR = 2;
-const VERSION_PATCH = 4;
+const VERSION_PATCH = 5;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -264,7 +264,7 @@ QBField.NewField = (options, attributes) => {
 
 // Used when loading from Quick Base
 QBField.ParseValue = (field, value) => {
-	if(value){
+	if(value !== undefined){
 		switch(field.get('field_type')){
 			case 'duration':
 				if(!(value instanceof moment)){
