@@ -264,37 +264,47 @@ QBField.NewField = (options, attributes) => {
 
 // Used when loading from Quick Base
 QBField.ParseValue = (field, value) => {
-	if(value !== undefined){
-		switch(field.get('field_type')){
-			case 'duration':
-				if(!(value instanceof moment)){
-					value = moment.duration(value, 'milliseconds');
-				}
-			break;
-			case 'multitext':
-			case 'multiuserid':
-				if(!(value instanceof Array)){
-					value = value.split(';');
-				}
-			break;
-			case 'timeofday':
-			case 'date':
-				if(!(value instanceof moment)){
-					value = moment.utc(value);
-				}
-			break;
-			case 'timestamp':
-				if(!(value instanceof moment)){
-					value = moment(value);
-				}
-			break;
-			case 'percent':
-				value = (+(value || 0)) * 100;
-			break;
-			case 'rating':
-				value = (+(value || 0));
-			break;
-		}
+	switch(field.get('field_type')){
+		case 'duration':
+			if(!value){
+				value = 0;
+			}
+
+			if(!(value instanceof moment)){
+				value = moment.duration(value, 'milliseconds');
+			}
+		break;
+		case 'multitext':
+		case 'multiuserid':
+			if(!!value && !(value instanceof Array)){
+				value = value.split(';');
+			}
+		break;
+		case 'timeofday':
+		case 'date':
+			if(!value){
+				value = 0;
+			}
+
+			if(!(value instanceof moment)){
+				value = moment.utc(value);
+			}
+		break;
+		case 'timestamp':
+			if(!value){
+				value = 0;
+			}
+
+			if(!(value instanceof moment)){
+				value = moment(value);
+			}
+		break;
+		case 'percent':
+			value = (+(value || 0)) * 100;
+		break;
+		case 'rating':
+			value = (+(value || 0));
+		break;
 	}
 
 	return value;
