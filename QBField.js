@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 0;
 const VERSION_MINOR = 2;
-const VERSION_PATCH = 6;
+const VERSION_PATCH = 7;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -389,7 +389,8 @@ QBField.FormatValue = (field, value) => {
 /* Helpers */
 const durationToTime = (duration, format) => {
 	let hrs = 0, min = 0,
-		sec = Math.round(duration.asSeconds());
+		sec = Math.round(duration.asSeconds()),
+		parts = [];
 
 	if(sec >= 3600){
 		hrs = Math.floor(sec / 3600);
