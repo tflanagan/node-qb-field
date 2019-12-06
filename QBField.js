@@ -277,7 +277,7 @@ QBField.ParseValue = (field, value) => {
 		case 'multitext':
 		case 'multiuserid':
 			if(!!value && !(value instanceof Array) && value !== undefined){
-					value = value.toString().split(';');	
+				value = value.toString().split(';');
 			}
 		case 'timeofday':
 		case 'date':
