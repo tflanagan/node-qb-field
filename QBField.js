@@ -279,6 +279,7 @@ QBField.ParseValue = (field, value) => {
 			if(!!value && !(value instanceof Array) && value !== undefined){
 				value = value.toString().split(';');
 			}
+		break;
 		case 'timeofday':
 		case 'date':
 			if(!value){
