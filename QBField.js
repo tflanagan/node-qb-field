@@ -2,8 +2,8 @@
 
 /* Versioning */
 const VERSION_MAJOR = 0;
-const VERSION_MINOR = 2;
-const VERSION_PATCH = 8;
+const VERSION_MINOR = 3;
+const VERSION_PATCH = 0;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -418,6 +418,9 @@ const durationToTime = (duration, format) => {
 		return ('0' + part).slice(-2);
 	}).join(':');
 };
+
+/* Expose Used Libraries */
+QBField.moment = moment;
 
 /* Expose Properties */
 QBField.defaults = defaults;
