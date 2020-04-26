@@ -394,20 +394,17 @@ export class QBField {
 }
 
 /* Interfaces */
-export interface QBFieldSettings {
+export interface QBFieldOptions {
+	quickbase?: QuickBaseOptions | QuickBase;
 	dbid: string;
 	fid: number;
-}
-
-export interface QBFieldOptions extends QBFieldSettings {
-	quickbase?: QuickBaseOptions | QuickBase;
 }
 
 export interface QBFieldData extends QuickBaseResponseField {
 	[index: string]: any;
 }
 
-export interface QBFieldJSON extends QBFieldOptions {
+export interface QBFieldJSON {
 	quickbase?: QuickBaseOptions;
 	dbid: string;
 	fid: number;
