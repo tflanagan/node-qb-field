@@ -1,85 +1,110 @@
-# QBField
-=========
+qb-field
+========
 
-A lightweight abstraction layer for QuickBase
+[![npm license](https://img.shields.io/npm/l/qb-field.svg)](https://www.npmjs.com/package/qb-field) [![npm version](https://img.shields.io/npm/v/qb-field.svg)](https://www.npmjs.com/package/qb-field) [![npm downloads](https://img.shields.io/npm/dm/qb-field.svg)](https://www.npmjs.com/package/qb-field)
 
-### Initialization
---------------
+A lightweight, promise based abstraction layer for Quick Base Fields
 
-```js
-const record = new QBField({
-	quickbase: {
-		realm: '',
-		appToken: ''
-	},
-	// quickbase: QuickBase Instance
-	dbid: '' // defaults to dbid in url if found
-	fid: -1
+Written in TypeScript, targets Nodejs and the Browser
+
+This library targets the new RESTful JSON-based API, not the old XML-based API. If you want to use the old XML-based API, then please use [v0.x](https://github.com/tflanagan/node-qb-field/tree/master/) of this library.
+
+```
+IE 11 Users, if you are receiving this error:
+XMLHttpRequest: Network Error 0x80070005, Access is denied.
+
+This is not a limitation of the library, just how Quick Base's new API works.
+In order to use the new RESTful JSON-based API in Internet Explorer, you must
+change a security setting:
+
+- Go to Internet Options -> Security -> Custom Level
+- Scroll down to and find the "Miscellaneous" section
+- Ensure "Access data sources across domains" is set to "Enable"
+- Click "OK", "Yes", "OK"
+```
+
+Install
+-------
+```
+# Install alpha channel
+$ npm install qb-field@alpha
+```
+
+Documentation
+-------------
+
+[TypeDoc Documentation](https://tflanagan.github.io/node-qb-field/)
+
+Server-Side Example
+-------------------
+```typescript
+import { QBField } from 'qb-field';
+import { QuickBase } from 'quickbase';
+
+const quickbase = new QuickBase({
+    realm: 'www',
+    userToken: 'xxxxxx_xxx_xxxxxxxxxxxxxxxxxxxxxxxxxx'
+    // Use tempToken if utilizing an authentication token sent
+    // up from client-side code. If possible, this is preferred.
+    // tempToken: 'xxxxxx_xxx_xxxxxxxxxxxxxxxxxxxxxxxxxx'
+});
+
+const qbField = new QBField({
+	quickbase: quickbase,
+	dbid: 'xxxxxxxxx',
+	fid: 6
+});
+
+(async () => {
+    try {
+        const results = await qbField.load();
+
+        console.log(qbField.get('label'), results.label);
+    }catch(err){
+        console.error(err);
+    }
+})();
+```
+
+Client-Side Example
+-------------------
+Import `QBField` by loading `qb-field.browserify.min.js`
+
+```javascript
+var quickbase = new QuickBase({
+    realm: 'www'
+});
+
+var qbField = new QBField({
+	quickbase: quickbase,
+	dbid: 'xxxxxxxxx',
+	fid: 6
+});
+
+// Using a Temporary Token
+quickbase.getTempToken().then(function(results){
+    quickbase.setTempToken(results.temporaryAuthorization);
+
+    return qbField.load();
+}).then(function(results){
+    console.log(qbField.get('label'), results.label);
+}).catch(function(err){
+    console.error(err);
 });
 ```
 
-### Methods
+License
 -------
+Copyright 2019 Tristian Flanagan
 
-#### `.clear()`
-This method clears the QBField instance of any trace of the existing field,
-but preserves defined connection settings.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-#### `.delete()`
-This method deletes the field from QuickBase, then calls `.clear()`.
+    http://www.apache.org/licenses/LICENSE-2.0
 
-#### `.get(attribute)`
- - `name`: string, required
-
-#### `.getDBID()`
-This method returns the DBID.
-
-#### `.getFid()`
-This method returns the Field ID.
-
-#### `.load()`
-This method executes an API_GetFieldProperties for the stored Field ID attributes.
-
-#### `.save(attributesToSave)`
- - `attributesToSave`: array, defaults to undefined
-
-If a field id is not defined, this will execute an API_AddField. After a 
-successful API_AddField, or if a field id was previously defined, this will
-execute an API_EditFieldProperties. If `choices` are defined for the field, 
-then appropriate API_FieldAddChoices and API_FieldRemoveChoices are executed.
-
-If `attributesToSave` is defined, then only configured attributes in this 
-array will be saved.
-
-If this executes an API_AddField, the newly assigned Field ID is
-automatically stored internally.
-
-#### `.set(attribute, value)`
- - `attribute`: string, required
- - `value`: mixed, required
-
-This method sets the passed in `value` associated with the `attribute` argument.
-
-#### `.setDBID(dbid)`
- - `dbid`: string, required
-
-Sets the `dbid` setting.
-
-#### `.setFid(fid)`
- - `fid`: integer, required
-
-Sets the `fid` setting.
-
-#### `.toJson(attributesToConvert)`
- - `attributesToConvert`: array, optional
-
- returns the field as a JSON object
-
-### Static Methods
--------
-#### `QBField.NewField(options, attributes)`
- - `options`: obj, required
- - `attributes`: obj, required
-
-Returns a new QBField instance built off of `options`, that inherits
-configuration data from the passed in `attributes` argument.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
