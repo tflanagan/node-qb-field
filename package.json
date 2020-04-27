@@ -1,8 +1,8 @@
 {
   "name": "qb-field",
   "private": false,
-  "version": "1.0.0-alpha.0",
-  "description": "A lightweight abstraction layer for QuickBase",
+  "version": "1.0.0-alpha.1",
+  "description": "A lightweight abstraction layer for Quick Base",
   "keywords": [
     "QuickBase",
     "quickbase",
@@ -50,7 +50,7 @@
     "test": "npx ava"
   },
   "dependencies": {
-    "quickbase": "3.0.0-alpha.12"
+    "quickbase": "3.0.0-alpha.13"
   },
   "devDependencies": {
     "@ava/typescript": "^1.1.1",

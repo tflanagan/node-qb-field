@@ -46,7 +46,7 @@ export class QBField {
 	private _qb: QuickBase;
 	private _dbid: string = '';
 	private _fid: number = -1;
-	private _data: QBFieldData = {
+	private _data: QuickBaseResponseField = {
 		id: -1,
 		fieldType: '',
 		label: ''
@@ -154,6 +154,10 @@ export class QBField {
 	 * @param attribute Quick Base Field attribute name
 	 */
 	get(attribute: string): any {
+		if(attribute === 'type'){
+			attribute = 'fieldType';
+		}
+
 		if(attribute === 'dbid'){
 			return this.getDBID();
 		}else
@@ -168,7 +172,7 @@ export class QBField {
 			return null;
 		}
 
-		return this._data[attribute];
+		return (this._data as Indexable)[attribute];
 	}
 
 	/**
@@ -197,7 +201,7 @@ export class QBField {
 	/**
 	 * Load the Quick Base Field attributes and permissions
 	 */
-	async load(): Promise<QBFieldData> {
+	async load(): Promise<QuickBaseResponseField> {
 		const results = await this._qb.getField({
 			tableId: this.get('dbid'),
 			fieldId: this.get('id')
@@ -234,7 +238,7 @@ export class QBField {
 	 * 
 	 * @param attributesToSave Array of attributes to save
 	 */
-	async save(attributesToSave?: string[]): Promise<QBFieldData> {
+	async save(attributesToSave?: string[]): Promise<QuickBaseResponseField> {
 		const data: any = {
 			tableId: this.get('dbid'),
 			fieldType: this.get('fieldType'),
@@ -271,6 +275,10 @@ export class QBField {
 	 * @param value Attribute value
 	 */
 	set(attribute: string, value: any): QBField {
+		if(attribute === 'type'){
+			attribute = 'fieldType';
+		}
+
 		if(attribute === 'dbid'){
 			this.setDBID(value);
 		}else
@@ -278,7 +286,7 @@ export class QBField {
 			this.setFid(value);
 		}
 
-		this._data[attribute] = value;
+		(this._data as Indexable)[attribute] = value;
 
 		return this;
 	}
@@ -379,12 +387,12 @@ export class QBField {
 	 * @param options QBField instance options
 	 * @param attributes Quick Base Field attribute data
 	 */
-	static newField(options: QBFieldOptions, attributes?: QBFieldData): QBField {
+	static newField(options: QBFieldOptions, attributes?: QuickBaseResponseField): QBField {
 		const newField = new QBField(options);
 
 		if(attributes){
 			Object.keys(attributes).forEach((attribute) => {
-				newField.set(attribute, attributes[attribute]);
+				newField.set(attribute, (attributes as Indexable)[attribute]);
 			});
 		}
 	
@@ -394,14 +402,14 @@ export class QBField {
 }
 
 /* Interfaces */
+interface Indexable {
+	[index: string]: any;
+}
+
 export interface QBFieldOptions {
 	quickbase?: QuickBaseOptions | QuickBase;
 	dbid: string;
 	fid: number;
-}
-
-export interface QBFieldData extends QuickBaseResponseField {
-	[index: string]: any;
 }
 
 export interface QBFieldJSON {
@@ -409,7 +417,7 @@ export interface QBFieldJSON {
 	dbid: string;
 	fid: number;
 	id?: number;
-	data?: QBFieldData;
+	data?: QuickBaseResponseField;
 }
 
 /* Export to Browser */
