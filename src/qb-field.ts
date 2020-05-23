@@ -306,7 +306,7 @@ export class QBField {
 	set(attribute: 'type', value: fieldType): QBField;
 	set(attribute: 'properties', value: QuickBaseResponseField['properties']): QBField;
 	set(attribute: 'permissions', value: QuickBaseResponseField['permissions']): QBField;
-	set(attribute: Omit<QBFieldAttribute, 'usage'>, value: any): QBField {
+	set(attribute: Exclude<QBFieldAttribute, 'usage'>, value: any): QBField {
 		if(attribute === 'type'){
 			attribute = 'fieldType';
 		}
@@ -318,7 +318,7 @@ export class QBField {
 			this.setFid(value);
 		}
 
-		(this._data as Indexable)['' + attribute] = value;
+		(this._data as Indexable)[attribute] = value;
 
 		return this;
 	}
