@@ -107,7 +107,9 @@ test('load()', async (t) => {
 test('save() - update', async (t) => {
 	qbField.set('label', 'New Test Field');
 
-	const results = await qbField.save();
+	const results = await qbField.save([
+		'label'
+	]);
 
 	t.truthy(qbField.get('fid') === fid && qbField.get('label') === 'New Test Field' && results.label === 'New Test Field');
 });

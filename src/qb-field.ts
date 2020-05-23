@@ -46,9 +46,8 @@ export class QBField {
 	private _qb: QuickBase;
 	private _dbid: string = '';
 	private _fid: number = -1;
-	private _data: QuickBaseResponseField = {
+	private _data: Optional<QuickBaseResponseField, 'fieldType'> = {
 		id: -1,
-		fieldType: '',
 		label: ''
 	};
 	private _usage: QuickBaseFieldUsage = {
@@ -119,7 +118,6 @@ export class QBField {
 
 		this._data = {
 			id: -1,
-			fieldType: '',
 			label: ''
 		};
 
@@ -153,7 +151,7 @@ export class QBField {
 	 * 
 	 * @param attribute Quick Base Field attribute name
 	 */
-	get(attribute: string): any {
+	get(attribute: keyof QuickBaseResponseField | 'type' | 'dbid' | 'fid' | 'usage'): any {
 		if(attribute === 'type'){
 			attribute = 'fieldType';
 		}
@@ -209,7 +207,7 @@ export class QBField {
 
 		this._data = results;
 
-		return this._data;
+		return this._data as QuickBaseResponseField;
 	}
 
 	/**
@@ -241,11 +239,10 @@ export class QBField {
 	async save(attributesToSave?: string[]): Promise<QuickBaseResponseField> {
 		const data: any = {
 			tableId: this.get('dbid'),
-			fieldType: this.get('fieldType'),
 			label: this.get('label')
 		};
-
-		Object.keys(this._data).filter((attribute) => {
+		
+		getObjectKeys(this._data).filter((attribute) => {
 			return !attributesToSave || attributesToSave.indexOf(attribute) !== -1;
 		}).forEach((attribute) => {
 			data[attribute] = this.get(attribute);
@@ -265,7 +262,7 @@ export class QBField {
 
 		this.setFid(this._data.id);
 
-		return this._data;
+		return this._data as QuickBaseResponseField;
 	}
 
 	/**
@@ -274,7 +271,7 @@ export class QBField {
 	 * @param attribute Quick Base Field attribute name
 	 * @param value Attribute value
 	 */
-	set(attribute: string, value: any): QBField {
+	set(attribute: keyof QuickBaseResponseField | 'type' | 'dbid' | 'fid', value: any): QBField {
 		if(attribute === 'type'){
 			attribute = 'fieldType';
 		}
@@ -305,9 +302,9 @@ export class QBField {
 	}
 
 	/**
-	 * Sets the defined Table ID
+	 * Sets the defined Field ID
 	 * 
-	 * An alias for `.set('id', 'xxxxxxxxx')` and `.set('fid', 'xxxxxxxxx')`.
+	 * An alias for `.set('id', 6)` and `.set('fid', 6)`.
 	 * 
 	 * @param fid Quick Base Field ID
 	 */
@@ -358,7 +355,7 @@ export class QBField {
 			quickbase: this._qb.toJSON(),
 			dbid: this.get('dbid'),
 			fid: this.get('fid'),
-			data: this._data
+			data: this._data as QuickBaseResponseField
 		};
 	}
 
@@ -391,8 +388,8 @@ export class QBField {
 		const newField = new QBField(options);
 
 		if(attributes){
-			Object.keys(attributes).forEach((attribute) => {
-				newField.set(attribute, (attributes as Indexable)[attribute]);
+			getObjectKeys(attributes).forEach((attribute) => {
+				newField.set(attribute, attributes[attribute]);
 			});
 		}
 	
@@ -401,7 +398,14 @@ export class QBField {
 
 }
 
+/* Helpers */
+function getObjectKeys<O>(obj: O): (keyof O)[] {
+    return Object.keys(obj) as (keyof O)[];
+}
+
 /* Interfaces */
+type Optional<T, K extends keyof T> = Omit<T, K> & Partial<T>;
+
 interface Indexable {
 	[index: string]: any;
 }
