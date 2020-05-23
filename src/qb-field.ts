@@ -306,7 +306,7 @@ export class QBField {
 	set(attribute: 'type', value: fieldType): QBField;
 	set(attribute: 'properties', value: QuickBaseResponseField['properties']): QBField;
 	set(attribute: 'permissions', value: QuickBaseResponseField['permissions']): QBField;
-	set(attribute: string, value: any): QBField {
+	set(attribute: Omit<QBFieldAttribute, 'usage'>, value: any): QBField {
 		if(attribute === 'type'){
 			attribute = 'fieldType';
 		}
@@ -318,7 +318,7 @@ export class QBField {
 			this.setFid(value);
 		}
 
-		(this._data as Indexable)[attribute] = value;
+		(this._data as Indexable)['' + attribute] = value;
 
 		return this;
 	}
@@ -442,7 +442,7 @@ function getObjectKeys<O>(obj: O): (keyof O)[] {
 /* Interfaces */
 type Optional<T, K extends keyof T> = Omit<T, K> & Partial<T>;
 
-type QBFieldAttribute = keyof QuickBaseResponseField | 'type' | 'dbid' | 'fid' | 'usage' | 'id';
+export type QBFieldAttribute = keyof QuickBaseResponseField | 'type' | 'dbid' | 'fid' | 'usage' | 'id';
 
 interface Indexable {
 	[index: string]: any;
