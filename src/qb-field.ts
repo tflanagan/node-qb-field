@@ -6,7 +6,9 @@ import {
 	QuickBaseOptions,
 	QuickBaseResponseField,
 	QuickBaseResponseDeleteFields,
-	QuickBaseFieldUsage
+	QuickBaseFieldUsage,
+	QuickBaseResponseFieldPermission,
+	fieldType
 } from 'quickbase';
 
 /* Globals */
@@ -151,7 +153,25 @@ export class QBField {
 	 * 
 	 * @param attribute Quick Base Field attribute name
 	 */
-	get(attribute: keyof QuickBaseResponseField | 'type' | 'dbid' | 'fid' | 'usage'): any {
+	get(attribute: 'noWrap'): boolean;
+	get(attribute: 'bold'): boolean;
+	get(attribute: 'required'): boolean;
+	get(attribute: 'appearsByDefault'): boolean;
+	get(attribute: 'findEnabled'): boolean;
+	get(attribute: 'unique'): boolean;
+	get(attribute: 'doesDataCopy'): boolean;
+	get(attribute: 'audited'): boolean;
+	get(attribute: 'id'): number;
+	get(attribute: 'fid'): number;
+	get(attribute: 'dbid'): string;
+	get(attribute: 'label'): string;
+	get(attribute: 'mode'): string;
+	get(attribute: 'fieldHelp'): string;
+	get(attribute: 'fieldType'): fieldType;
+	get(attribute: 'type'): fieldType;
+	get(attribute: 'properties'): QuickBaseResponseField['properties'];
+	get(attribute: 'permissions'): QuickBaseResponseFieldPermission[];
+	get(attribute: QBFieldAttribute): fieldType | QuickBaseResponseFieldPermission[] | QuickBaseFieldUsage | QuickBaseResponseField['properties'] | string | number | boolean | undefined {
 		if(attribute === 'type'){
 			attribute = 'fieldType';
 		}
@@ -164,10 +184,6 @@ export class QBField {
 		}else
 		if(attribute === 'usage'){
 			return this.getUsage();
-		}
-
-		if(!this._data.hasOwnProperty(attribute)){
-			return null;
 		}
 
 		return (this._data as Indexable)[attribute];
@@ -245,6 +261,7 @@ export class QBField {
 		getObjectKeys(this._data).filter((attribute) => {
 			return !attributesToSave || attributesToSave.indexOf(attribute) !== -1;
 		}).forEach((attribute) => {
+			//@ts-ignore
 			data[attribute] = this.get(attribute);
 		});
 
@@ -271,7 +288,25 @@ export class QBField {
 	 * @param attribute Quick Base Field attribute name
 	 * @param value Attribute value
 	 */
-	set(attribute: keyof QuickBaseResponseField | 'type' | 'dbid' | 'fid', value: any): QBField {
+	set(attribute: 'noWrap', value: boolean): QBField;
+	set(attribute: 'bold', value: boolean): QBField;
+	set(attribute: 'required', value: boolean): QBField;
+	set(attribute: 'appearsByDefault', value: boolean): QBField;
+	set(attribute: 'findEnabled', value: boolean): QBField;
+	set(attribute: 'unique', value: boolean): QBField;
+	set(attribute: 'doesDataCopy', value: boolean): QBField;
+	set(attribute: 'audited', value: boolean): QBField;
+	set(attribute: 'id', value: number): QBField;
+	set(attribute: 'fid', value: number): QBField;
+	set(attribute: 'dbid', value: string): QBField;
+	set(attribute: 'label', value: string): QBField;
+	set(attribute: 'mode', value: string): QBField;
+	set(attribute: 'fieldHelp', value: string): QBField;
+	set(attribute: 'fieldType', value: fieldType): QBField;
+	set(attribute: 'type', value: fieldType): QBField;
+	set(attribute: 'properties', value: QuickBaseResponseField['properties']): QBField;
+	set(attribute: 'permissions', value: QuickBaseResponseField['permissions']): QBField;
+	set(attribute: string, value: any): QBField {
 		if(attribute === 'type'){
 			attribute = 'fieldType';
 		}
@@ -337,7 +372,7 @@ export class QBField {
 		}
 
 		if(json.fid || json.id){
-			this.set('fid', json.fid || json.id);
+			this.set('fid', json.fid || json.id || -1);
 		}
 
 		if(json.data){
@@ -389,6 +424,7 @@ export class QBField {
 
 		if(attributes){
 			getObjectKeys(attributes).forEach((attribute) => {
+				//@ts-ignore
 				newField.set(attribute, attributes[attribute]);
 			});
 		}
@@ -405,6 +441,8 @@ function getObjectKeys<O>(obj: O): (keyof O)[] {
 
 /* Interfaces */
 type Optional<T, K extends keyof T> = Omit<T, K> & Partial<T>;
+
+type QBFieldAttribute = keyof QuickBaseResponseField | 'type' | 'dbid' | 'fid' | 'usage' | 'id';
 
 interface Indexable {
 	[index: string]: any;
