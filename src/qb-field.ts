@@ -172,7 +172,8 @@ export class QBField {
 	get(attribute: 'type'): fieldType;
 	get(attribute: 'properties'): QuickBaseResponseField['properties'];
 	get(attribute: 'permissions'): QuickBaseResponseFieldPermission[];
-	get(attribute: QBFieldAttribute): fieldType | QuickBaseResponseFieldPermission[] | QuickBaseFieldUsage | QuickBaseResponseField['properties'] | string | number | boolean | undefined {
+	get(attribute: QBFieldAttribute): fieldType | QuickBaseResponseFieldPermission[] | QuickBaseFieldUsage | QuickBaseResponseField['properties'] | string | number | boolean | undefined;
+	get(attribute: string): fieldType | QuickBaseResponseFieldPermission[] | QuickBaseFieldUsage | QuickBaseResponseField['properties'] | string | number | boolean | undefined {
 		if(attribute === 'type'){
 			attribute = 'fieldType';
 		}
@@ -332,7 +333,8 @@ export class QBField {
 	set(attribute: 'type', value: fieldType): QBField;
 	set(attribute: 'properties', value: QuickBaseResponseField['properties']): QBField;
 	set(attribute: 'permissions', value: QuickBaseResponseField['permissions']): QBField;
-	set(attribute: QBFieldAttribute, value: any): QBField {
+	set(attribute: QBFieldAttribute, value: any): QBField;
+	set(attribute: string, value: any): QBField {
 		if(attribute === 'dbid'){
 			this.setDBID(value);
 		}else
