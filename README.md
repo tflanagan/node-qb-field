@@ -26,8 +26,8 @@ change a security setting:
 Install
 -------
 ```
-# Install alpha channel
-$ npm install qb-field@alpha
+# Install
+$ npm install qb-field
 ```
 
 Documentation
