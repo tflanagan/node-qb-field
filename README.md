@@ -7,7 +7,7 @@ A lightweight, promise based abstraction layer for Quick Base Fields
 
 Written in TypeScript, targets Nodejs and the Browser
 
-This library targets the new RESTful JSON-based API, not the old XML-based API. If you want to use the old XML-based API, then please use [v0.x](https://github.com/tflanagan/node-qb-field/tree/master/) of this library.
+This library targets the new RESTful JSON-based API, not the old XML-based API. If you want to use the old XML-based API, then please use [v0.x](https://github.com/tflanagan/node-qb-field/tree/v0.x/) of this library.
 
 ```
 IE 11 Users, if you are receiving this error:

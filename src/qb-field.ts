@@ -157,6 +157,7 @@ export class QBField {
 	get(attribute: 'bold'): boolean;
 	get(attribute: 'required'): boolean;
 	get(attribute: 'appearsByDefault'): boolean;
+	get(attribute: 'addToForms'): boolean;
 	get(attribute: 'findEnabled'): boolean;
 	get(attribute: 'unique'): boolean;
 	get(attribute: 'doesDataCopy'): boolean;
@@ -252,14 +253,38 @@ export class QBField {
 	 * 
 	 * @param attributesToSave Array of attributes to save
 	 */
-	async save(attributesToSave?: string[]): Promise<QuickBaseResponseField> {
+	async save(attributesToSave?: QBFieldAttribute[]): Promise<QuickBaseResponseField> {
 		const data: any = {
 			tableId: this.get('dbid'),
 			label: this.get('label')
 		};
+
+		const saveable = [
+			'fieldHelp',
+			'properties',
+			'permissions',
+			'label',
+			'noWrap',
+			'bold',
+			'appearsByDefault',
+			'findEnabled',
+			'addToForms'
+		];
+
+		if(this.get('id') <= 0){
+			saveable.push(
+				'fieldType',
+				'mode',
+				'audited',
+				'doesDataCopy',
+				'required',
+				'unique'
+			);
+		}
 		
 		getObjectKeys(this._data).filter((attribute) => {
-			return !attributesToSave || attributesToSave.indexOf(attribute) !== -1;
+			// @ts-ignore
+			return saveable.indexOf(attribute) !== -1 && (!attributesToSave || attributesToSave.indexOf(attribute) !== -1);
 		}).forEach((attribute) => {
 			//@ts-ignore
 			data[attribute] = this.get(attribute);
@@ -292,6 +317,7 @@ export class QBField {
 	set(attribute: 'bold', value: boolean): QBField;
 	set(attribute: 'required', value: boolean): QBField;
 	set(attribute: 'appearsByDefault', value: boolean): QBField;
+	set(attribute: 'addToForms', value: boolean): QBField;
 	set(attribute: 'findEnabled', value: boolean): QBField;
 	set(attribute: 'unique', value: boolean): QBField;
 	set(attribute: 'doesDataCopy', value: boolean): QBField;
@@ -306,11 +332,7 @@ export class QBField {
 	set(attribute: 'type', value: fieldType): QBField;
 	set(attribute: 'properties', value: QuickBaseResponseField['properties']): QBField;
 	set(attribute: 'permissions', value: QuickBaseResponseField['permissions']): QBField;
-	set(attribute: Exclude<QBFieldAttribute, 'usage'>, value: any): QBField {
-		if(attribute === 'type'){
-			attribute = 'fieldType';
-		}
-
+	set(attribute: QBFieldAttribute, value: any): QBField {
 		if(attribute === 'dbid'){
 			this.setDBID(value);
 		}else
@@ -443,6 +465,7 @@ function getObjectKeys<O>(obj: O): (keyof O)[] {
 type Optional<T, K extends keyof T> = Omit<T, K> & Partial<T>;
 
 export type QBFieldAttribute = keyof QuickBaseResponseField | 'type' | 'dbid' | 'fid' | 'usage' | 'id';
+export type QBFieldAttributeSavable = Exclude<QBFieldAttribute, 'usage' | 'type' | 'fieldType' | 'mode' | 'audited' | 'doesDataCopy' | 'required' | 'unique'>;
 
 interface Indexable {
 	[index: string]: any;
