@@ -1,6 +1,8 @@
 'use strict';
 
 /* Dependencies */
+import merge from 'deepmerge';
+import RFC4122 from 'rfc4122';
 import {
 	QuickBase,
 	QuickBaseOptions,
@@ -8,15 +10,29 @@ import {
 	QuickBaseResponseDeleteFields,
 	QuickBaseFieldUsage,
 	QuickBaseResponseFieldPermission,
-	fieldType
+	fieldType,
+	QuickBaseResponseUpdateField,
+	QuickBaseResponseCreateField
 } from 'quickbase';
 
 /* Globals */
 const VERSION = require('../package.json').version;
 const IS_BROWSER = typeof(window) !== 'undefined';
+const rfc4122 = new RFC4122();
 
 /* Main Class */
 export class QBField {
+
+	/**
+	 * The class name
+	 *
+	 * Loading multiple instances of this class results in failed `instanceof` checks.
+	 * `Function.name` is corrupted by the browserify/minify processes.
+	 * Allow code to check if an object is this class by look at this `CLASS_NAME`
+	 * property. Code can further check `VERSION` to ensure correct versioning
+	 */
+	public readonly CLASS_NAME = 'QBField';
+	static readonly CLASS_NAME = 'QBField';
 
 	/**
 	 * The loaded library version
@@ -31,12 +47,12 @@ export class QBField {
 			realm: IS_BROWSER ? window.location.host.split('.')[0] : ''
 		},
 	
-		dbid: (() => {
+		tableId: (() => {
 			if(IS_BROWSER){
-				const dbid = window.location.pathname.match(/^\/db\/(?!main)(.*)$/);
+				const tableId = window.location.pathname.match(/^\/db\/(?!main)(.*)$/);
 	
-				if(dbid){
-					return dbid[1];
+				if(tableId){
+					return tableId[1];
 				}
 			}
 	
@@ -45,13 +61,15 @@ export class QBField {
 		fid: -1
 	};
 
+	/**
+	 * An internal id (guid) used for tracking/managing object instances
+	 */
+	public id: string;
+
 	private _qb: QuickBase;
-	private _dbid: string = '';
+	private _tableId: string = '';
 	private _fid: number = -1;
-	private _data: Optional<QuickBaseResponseField, 'fieldType'> = {
-		id: -1,
-		label: ''
-	};
+	private _data: Partial<QuickBaseResponseField> = {};
 	private _usage: QuickBaseFieldUsage = {
 		actions: {
 			count: 0
@@ -94,16 +112,22 @@ export class QBField {
 		}
 	};
 
-	constructor(options?: QBFieldOptions){
+	constructor(options?: Partial<QBFieldOptions>){
+		this.id = rfc4122.v4();
+
 		if(options){
-			if(options.quickbase instanceof QuickBase){
-				this._qb = options.quickbase;
+			if(options.quickbase && (options.quickbase as QuickBase).CLASS_NAME === 'QuickBase'){
+				this._qb = (options.quickbase as QuickBase);
 			}else{
-				this._qb = new QuickBase(options.quickbase);
+				this._qb = new QuickBase(options.quickbase as QuickBaseOptions);
 			}
 
-			this.setDBID(options.dbid)
-				.setFid(options.fid);
+			delete options.quickbase;
+
+			const settings = merge(QBField.defaults, options || {});
+
+			this.setTableId(settings.tableId)
+				.setFid(settings.fid);
 		}else{
 			this._qb = new QuickBase();
 		}
@@ -115,13 +139,8 @@ export class QBField {
 	 * This method clears the QBField instance of any trace of the existing field, but preserves defined connection settings.
 	 */
 	clear(): QBField {
-		this._dbid = '';
 		this._fid = -1;
-
-		this._data = {
-			id: -1,
-			label: ''
-		};
+		this._data = {};
 
 		return this;
 	}
@@ -130,19 +149,26 @@ export class QBField {
 	 * This method deletes the field from QuickBase, then calls `.clear()`.
 	 */
 	async delete(): Promise<QuickBaseResponseDeleteFields> {
+		const fid = this.get('id');
+
 		try {
 			const results = await this._qb.deleteFields({
-				tableId: this.get('dbid'),
-				fieldIds: [
-					this.get('id')
-				]
+				tableId: this.get('tableId'),
+				fieldIds: [ fid ]
 			});
 
 			this.clear();
 
 			return results;
 		}catch(err){
-			// TODO: test if err is field not found or deleted, return true
+			if(err.description === `Field: ${fid} was not found.`){
+				this.clear();
+
+				return {
+					deletedFieldIds: [ fid ],
+					errors: []
+				};
+			}
 
 			throw err;
 		}
@@ -164,7 +190,7 @@ export class QBField {
 	get(attribute: 'audited'): boolean;
 	get(attribute: 'id'): number;
 	get(attribute: 'fid'): number;
-	get(attribute: 'dbid'): string;
+	get(attribute: 'tableId'): string;
 	get(attribute: 'label'): string;
 	get(attribute: 'mode'): string;
 	get(attribute: 'fieldHelp'): string;
@@ -172,14 +198,16 @@ export class QBField {
 	get(attribute: 'type'): fieldType;
 	get(attribute: 'properties'): QuickBaseResponseField['properties'];
 	get(attribute: 'permissions'): QuickBaseResponseFieldPermission[];
+	get(attribute: 'usage'): QuickBaseFieldUsage;
 	get(attribute: QBFieldAttribute): fieldType | QuickBaseResponseFieldPermission[] | QuickBaseFieldUsage | QuickBaseResponseField['properties'] | string | number | boolean | undefined;
-	get(attribute: string): fieldType | QuickBaseResponseFieldPermission[] | QuickBaseFieldUsage | QuickBaseResponseField['properties'] | string | number | boolean | undefined {
+	get(attribute: string): any;
+	get(attribute: string): any {
 		if(attribute === 'type'){
 			attribute = 'fieldType';
 		}
 
-		if(attribute === 'dbid'){
-			return this.getDBID();
+		if(attribute === 'tableId'){
+			return this.getTableId();
 		}else
 		if(attribute === 'fid' || attribute === 'id'){
 			return this.getFid();
@@ -192,17 +220,17 @@ export class QBField {
 	}
 
 	/**
-	 * Get the set QBField Table ID
-	 */
-	getDBID(): string {
-		return this._dbid;
-	}
-
-	/**
 	 * Get the set QBField Field ID
 	 */
 	getFid(): number {
 		return this._fid;
+	}
+
+	/**
+	 * Get the set QBField Table ID
+	 */
+	getTableId(): string {
+		return this._tableId;
 	}
 
 	/**
@@ -219,11 +247,13 @@ export class QBField {
 	 */
 	async load(): Promise<QuickBaseResponseField> {
 		const results = await this._qb.getField({
-			tableId: this.get('dbid'),
+			tableId: this.get('tableId'),
 			fieldId: this.get('id')
 		});
 
-		this._data = results;
+		getObjectKeys(results).forEach((attribute) => {
+			this.set(attribute, results[attribute]);
+		});
 
 		return this._data as QuickBaseResponseField;
 	}
@@ -233,13 +263,13 @@ export class QBField {
 	 */
 	async loadUsage(): Promise<QuickBaseFieldUsage> {
 		const results = await this._qb.getFieldUsage({
-			tableId: this.get('dbid'),
+			tableId: this.get('tableId'),
 			fieldId: this.get('fid')
 		});
 
-		this._usage = results.usage;
+		this.set('usage', results);
 
-		return this._usage;
+		return this.get('usage');
 	}
 
 	/**
@@ -254,15 +284,14 @@ export class QBField {
 	 * 
 	 * @param attributesToSave Array of attributes to save
 	 */
-	async save(attributesToSave?: QBFieldAttribute[]): Promise<QuickBaseResponseField> {
+	async save(attributesToSave?: QBFieldAttributeSavable[]): Promise<QuickBaseResponseField> {
 		const data: any = {
-			tableId: this.get('dbid'),
+			tableId: this.get('tableId'),
 			label: this.get('label')
 		};
 
-		const saveable = [
+		const saveable: QBFieldAttributeSavable[] = [
 			'fieldHelp',
-			'properties',
 			'permissions',
 			'label',
 			'noWrap',
@@ -272,26 +301,37 @@ export class QBField {
 			'addToForms'
 		];
 
-		if(this.get('id') <= 0){
+		if(this.get('id') > 0){
+			saveable.push(
+				'required',
+				'unique'
+			);
+		}else{
 			saveable.push(
 				'fieldType',
 				'mode',
 				'audited',
-				'doesDataCopy',
-				'required',
-				'unique'
 			);
 		}
-		
-		getObjectKeys(this._data).filter((attribute) => {
-			// @ts-ignore
-			return saveable.indexOf(attribute) !== -1 && (!attributesToSave || attributesToSave.indexOf(attribute) !== -1);
+
+		// TODO
+		// Need to filter out properties based on field type
+		// Field schema is not "round-trip", the returned schema
+		// has attributes in the properties object that are not
+		// accepted when saved. For now, only save the properties
+		// object when requested.
+		if(attributesToSave?.indexOf('properties')){
+			saveable.push('properties');
+		}
+
+		saveable.filter((attribute) => {
+			return !attributesToSave || attributesToSave.indexOf(attribute) !== -1;
 		}).forEach((attribute) => {
-			//@ts-ignore
 			data[attribute] = this.get(attribute);
 		});
 
-		let results;
+		let results: QuickBaseResponseUpdateField | QuickBaseResponseCreateField;
+
 
 		if(this.get('id') > 0){
 			data.fieldId = this.get('id');
@@ -301,9 +341,9 @@ export class QBField {
 			results = await this._qb.createField(data);
 		}
 
-		this._data = results;
-
-		this.setFid(this._data.id);
+		getObjectKeys(results).forEach((attribute) => {
+			this.set(attribute, results[attribute]);
+		});
 
 		return this._data as QuickBaseResponseField;
 	}
@@ -325,7 +365,7 @@ export class QBField {
 	set(attribute: 'audited', value: boolean): QBField;
 	set(attribute: 'id', value: number): QBField;
 	set(attribute: 'fid', value: number): QBField;
-	set(attribute: 'dbid', value: string): QBField;
+	set(attribute: 'tableId', value: string): QBField;
 	set(attribute: 'label', value: string): QBField;
 	set(attribute: 'mode', value: string): QBField;
 	set(attribute: 'fieldHelp', value: string): QBField;
@@ -334,28 +374,16 @@ export class QBField {
 	set(attribute: 'properties', value: QuickBaseResponseField['properties']): QBField;
 	set(attribute: 'permissions', value: QuickBaseResponseField['permissions']): QBField;
 	set(attribute: QBFieldAttribute, value: any): QBField;
+	set(attribute: string, value: any): QBField;
 	set(attribute: string, value: any): QBField {
-		if(attribute === 'dbid'){
-			this.setDBID(value);
+		if(attribute === 'tableId'){
+			this.setTableId(value);
 		}else
 		if(attribute === 'fid' || attribute === 'id'){
 			this.setFid(value);
 		}
 
 		(this._data as Indexable)[attribute] = value;
-
-		return this;
-	}
-
-	/**
-	 * Sets the defined Table ID
-	 * 
-	 * An alias for `.set('dbid', 'xxxxxxxxx')`.
-	 * 
-	 * @param dbid Quick Base Field Table ID
-	 */
-	setDBID(dbid: string): QBField {
-		this._dbid = dbid;
 
 		return this;
 	}
@@ -369,6 +397,19 @@ export class QBField {
 	 */
 	setFid(fid: number): QBField {
 		this._fid = fid;
+
+		return this;
+	}
+
+	/**
+	 * Sets the defined Table ID
+	 * 
+	 * An alias for `.set('tableId', 'xxxxxxxxx')`.
+	 * 
+	 * @param tableId Quick Base Field Table ID
+	 */
+	setTableId(tableId: string): QBField {
+		this._tableId = tableId;
 
 		return this;
 	}
@@ -391,8 +432,8 @@ export class QBField {
 			this._qb = new QuickBase(json.quickbase);
 		}
 
-		if(json.dbid){
-			this.set('dbid', json.dbid);
+		if(json.tableId){
+			this.set('tableId', json.tableId);
 		}
 
 		if(json.fid || json.id){
@@ -400,7 +441,13 @@ export class QBField {
 		}
 
 		if(json.data){
-			this._data = json.data;
+			getObjectKeys(json.data).forEach((name) => {
+				this.set(name, (json as QBFieldJSON).data![name]);
+			});
+		}
+
+		if(json.usage){
+			this._usage = json.usage;
 		}
 
 		return this;
@@ -412,9 +459,10 @@ export class QBField {
 	toJSON(): QBFieldJSON {
 		return {
 			quickbase: this._qb.toJSON(),
-			dbid: this.get('dbid'),
+			tableId: this.get('tableId'),
 			fid: this.get('fid'),
-			data: this._data as QuickBaseResponseField
+			data: merge({}, this._data),
+			usage: this.getUsage()
 		};
 	}
 
@@ -443,12 +491,11 @@ export class QBField {
 	 * @param options QBField instance options
 	 * @param attributes Quick Base Field attribute data
 	 */
-	static newField(options: QBFieldOptions, attributes?: QuickBaseResponseField): QBField {
+	static newField(options: Partial<QBFieldOptions>, attributes?: QuickBaseResponseField): QBField {
 		const newField = new QBField(options);
 
 		if(attributes){
 			getObjectKeys(attributes).forEach((attribute) => {
-				//@ts-ignore
 				newField.set(attribute, attributes[attribute]);
 			});
 		}
@@ -464,27 +511,26 @@ function getObjectKeys<O>(obj: O): (keyof O)[] {
 }
 
 /* Interfaces */
-type Optional<T, K extends keyof T> = Omit<T, K> & Partial<T>;
-
-export type QBFieldAttribute = keyof QuickBaseResponseField | 'type' | 'dbid' | 'fid' | 'usage' | 'id';
-export type QBFieldAttributeSavable = Exclude<QBFieldAttribute, 'usage' | 'type' | 'fieldType' | 'mode' | 'audited' | 'doesDataCopy' | 'required' | 'unique'>;
+export type QBFieldAttribute = keyof QuickBaseResponseField | 'type' | 'fid' | 'usage' | 'id';
+export type QBFieldAttributeSavable = Exclude<QBFieldAttribute, 'usage' | 'type' | 'doesDataCopy' | 'fid'>;
 
 interface Indexable {
 	[index: string]: any;
 }
 
 export interface QBFieldOptions {
-	quickbase?: QuickBaseOptions | QuickBase;
-	dbid: string;
+	quickbase: QuickBaseOptions | QuickBase;
+	tableId: string;
 	fid: number;
 }
 
 export interface QBFieldJSON {
 	quickbase?: QuickBaseOptions;
-	dbid: string;
+	tableId: string;
 	fid: number;
 	id?: number;
 	data?: QuickBaseResponseField;
+	usage?: QuickBaseFieldUsage;
 }
 
 /* Export to Browser */

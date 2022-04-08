@@ -27,7 +27,7 @@ Install
 -------
 ```
 # Install
-$ npm install qb-field
+$ npm install --save quickbase qb-field
 ```
 
 Documentation

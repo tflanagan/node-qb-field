@@ -33,43 +33,22 @@ const qb = new QuickBase(qbOptions);
 
 const qbFieldOptions: QBFieldOptions = {
 	quickbase: qb,
-	dbid: '',
+	tableId: '',
 	fid: -1
 };
 
 const qbField = new QBField(qbFieldOptions);
 
 let newAppId: string;
-let newDbid: string;
+let newTableId: string;
 let newFid: number;
 
-test.after.always('deleteTable()', async (t) => {
-	if(!newDbid){
-		return t.pass();
-	}
-
-	const results = await qb.deleteTable({
-		appId: newAppId,
-		tableId: newDbid
-	});
-
-	t.truthy(results.deletedTableId === newDbid);
+test('QuickBase instance match', async (t) => {
+	// @ts-ignore
+	return t.truthy(qb === qbField._qb);
 });
 
-test.after.always('deleteApp()', async (t) => {
-	if(!newAppId){
-		return t.pass();
-	}
-
-	const results = await qb.deleteApp({
-		appId: newAppId,
-		name: 'Test Node Quick Base Application'
-	});
-
-	t.truthy(results.deletedAppId === newAppId);
-});
-
-test('QuickBase:createApp()', async (t) => {
+test.before('QuickBase:createApp()', async (t) => {
 	const results = await qb.createApp({
 		name: 'Test Node Quick Base Application',
 		assignToken: true
@@ -80,17 +59,44 @@ test('QuickBase:createApp()', async (t) => {
 	t.truthy(newAppId && results.name === 'Test Node Quick Base Application');
 });
 
-test('QuickBase:createTable()', async (t) => {
+test.before('QuickBase:createTable()', async (t) => {
 	const results = await qb.createTable({
 		appId: newAppId,
 		name: 'Test Name'
 	});
 
-	qbField.set('dbid', results.id);
+	qbField.set('tableId', results.id);
 
-	newDbid = qbField.get('dbid');
+	newTableId = qbField.get('tableId');
 
-	t.truthy(qbField.get('dbid'));
+	t.truthy(qbField.get('tableId'));
+});
+
+
+test.after.always('QuickBase:deleteTable()', async (t) => {
+	if(!newTableId){
+		return t.pass();
+	}
+
+	const results = await qb.deleteTable({
+		appId: newAppId,
+		tableId: newTableId
+	});
+
+	t.truthy(results.deletedTableId === newTableId);
+});
+
+test.after.always('QuickBase:deleteApp()', async (t) => {
+	if(!newAppId){
+		return t.pass();
+	}
+
+	const results = await qb.deleteApp({
+		appId: newAppId,
+		name: 'Test Node Quick Base Application'
+	});
+
+	t.truthy(results.deletedAppId === newAppId);
 });
 
 test('save() - create', async (t) => {
@@ -112,7 +118,7 @@ test('toJSON() -> fromJSON()', async (t) => {
 	if(pass){
 		qbField.fromJSON(json);
 
-		pass = JSON.stringify(qbField.toJSON()) === JSON.stringify(json);
+		pass = qbField.get('fid') === json.data?.id;
 	}
 
 	if(pass){
@@ -126,7 +132,7 @@ test('QBField.fromJSON()', async (t) => {
 	const json = qbField.toJSON();
 	const newQBField = QBField.fromJSON(json);
 
-	t.truthy(JSON.stringify(newQBField.toJSON()) === JSON.stringify(json));
+	t.truthy(newQBField.get('fid') === json.data?.id);
 });
 
 test('QBField.newField()', async (t) => {
@@ -141,9 +147,149 @@ test('load()', async (t) => {
 	t.truthy(qbField.get('fid') === results.id && qbField.get('label') === 'Test Field' && results.label === 'Test Field');
 });
 
-test('save() - update', async (t) => {
-	qbField.set('label', 'New Test Field');
+test('loadUsage()', async (t) => {
+	await qbField.loadUsage();
 
+	t.truthy(qbField.get('usage'));
+});
+
+test("getFid()", (t) => {
+	t.truthy(qbField.getFid() > 0);
+});
+
+test("getTableId()", (t) => {
+	t.truthy(qbField.getTableId());
+});
+
+test("getUsage()", (t) => {
+	t.truthy(qbField.getUsage());
+});
+
+test("get('id')", (t) => {
+	t.truthy(qbField.get('id') > 0);
+});
+
+test("get('fid')", (t) => {
+	t.truthy(qbField.get('fid') > 0);
+});
+
+test("get('tableId')", (t) => {
+	t.truthy(qbField.get('tableId'));
+});
+
+test("get('mode')", (t) => {
+	t.truthy(qbField.get('mode') !== undefined);
+});
+
+test("get('fieldType')", (t) => {
+	t.truthy(qbField.get('fieldType'));
+});
+
+test("get('type')", (t) => {
+	t.truthy(qbField.get('type'));
+});
+
+test("get('audited')", (t) => {
+	t.truthy(qbField.get('audited') !== undefined);
+});
+
+test("get('doesDataCopy')", (t) => {
+	t.truthy(qbField.get('doesDataCopy') !== undefined);
+});
+
+test("get('unique')", (t) => {
+	t.truthy(qbField.get('unique') !== undefined);
+});
+
+test("get('required')", (t) => {
+	t.truthy(qbField.get('required') !== undefined);
+});
+
+test("get('properties')", (t) => {
+	t.truthy(qbField.get('properties') !== undefined);
+});
+
+test("get('permissions')", (t) => {
+	t.truthy(qbField.get('permissions') !== undefined);
+});
+
+test("get/set('label')", (t) => {
+	const fid = 'label';
+	const value = 'New Test Field';
+
+	qbField.set(fid, value);
+
+	t.truthy(qbField.get(fid) === value);
+});
+
+test("get/set('fieldHelp')", (t) => {
+	const fid = 'fieldHelp';
+	const value = 'Some help text';
+
+	qbField.set(fid, value);
+
+	t.truthy(qbField.get(fid) === value);
+});
+
+test("get/set('bold')", (t) => {
+	const fid = 'bold';
+	const value = true;
+
+	qbField.set(fid, value);
+
+	t.truthy(qbField.get(fid) === value);
+});
+
+test("get/set('noWrap')", (t) => {
+	const fid = 'noWrap';
+	const value = true;
+
+	qbField.set(fid, value);
+
+	t.truthy(qbField.get(fid) === value);
+});
+
+test("get/set('appearsByDefault')", (t) => {
+	const fid = 'appearsByDefault';
+	const value = true;
+
+	qbField.set(fid, value);
+
+	t.truthy(qbField.get(fid) === value);
+});
+
+test("get/set('findEnabled')", (t) => {
+	const fid = 'findEnabled';
+	const value = true;
+
+	qbField.set(fid, value);
+
+	t.truthy(qbField.get(fid) === value);
+});
+
+test("get/set('addToForms')", (t) => {
+	const fid = 'addToForms';
+	const value = true;
+
+	qbField.set(fid, value);
+
+	t.truthy(qbField.get(fid) === value);
+});
+
+test("get/set('_randomValue')", (t) => {
+	const fid = '_randomValue';
+	const value = 'Random Value';
+
+	qbField.set(fid, value);
+
+	t.truthy(qbField.get(fid) === value);
+});
+
+test("get('_doesntExist')", (t) => {
+	t.truthy(qbField.get('_doesntExist') === undefined);
+});
+
+test('save() - update', async (t) => {
 	const results = await qbField.save([
 		'label'
 	]);
@@ -155,4 +301,12 @@ test('delete()', async (t) => {
 	const results = await qbField.delete();
 
 	t.truthy(results.deletedFieldIds[0] === newFid);
+});
+
+test('delete() - empty', async (t) => {
+	const fid = qbField.get('id');
+
+	const results = await qbField.delete();
+
+	t.truthy(results.deletedFieldIds[0] === fid);
 });
