@@ -14,20 +14,20 @@ declare class QBField<T = Record<string, any>> {
 	_dbid: string;
 	_fid: number;
 	_data: T;
-	_baselineChoices: any[];
+	_baselineChoices: string[];
     className: string;
     settings: QBFieldSettings;
 	clear(): void;
-	delete(): Promise<QBField>;
+	delete(): Promise<this>;
 	get<K extends keyof T>(attribute: K): T[K];
 	getDBID(): string;
 	getFid():number;
-	load(): Promise<QBField>;
-	save(attributesToSave?: string[]): Promise<QBField>;
-	set(attribute: string, value?: any): QBField;
-	setDBID(dbid: string): QBField;
-	setFid(fid: number): QBField;
-	toJson(attributesToConvert?: any[]): T;
+	load(): Promise<this>;
+	save(attributesToSave?: string[]): Promise<this>;
+	set<K extends keyof T>(attribute: K, value?: T[K]): this;
+	setDBID(dbid: string): this;
+	setFid(fid: number): this;
+	toJson(attributesToConvert?: (keyof T)[]): T;
 }
 
 declare namespace QBField {

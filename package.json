@@ -1,7 +1,7 @@
 {
   "name": "qb-field",
   "private": false,
-  "version": "0.3.4",
+  "version": "0.3.5",
   "description": "A lightweight abstraction layer for QuickBase",
   "keywords": [
     "QuickBase",
