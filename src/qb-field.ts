@@ -10,9 +10,7 @@ import {
 	QuickBaseResponseDeleteFields,
 	QuickBaseFieldUsage,
 	QuickBaseResponseFieldPermission,
-	fieldType,
-	QuickBaseResponseUpdateField,
-	QuickBaseResponseCreateField
+	fieldType
 } from 'quickbase';
 
 /* Globals */
@@ -46,16 +44,16 @@ export class QBField {
 		quickbase: {
 			realm: IS_BROWSER ? window.location.host.split('.')[0] : ''
 		},
-	
+
 		tableId: (() => {
 			if(IS_BROWSER){
 				const tableId = window.location.pathname.match(/^\/db\/(?!main)(.*)$/);
-	
+
 				if(tableId){
 					return tableId[1];
 				}
 			}
-	
+
 			return '';
 		})(),
 		fid: -1
@@ -116,15 +114,23 @@ export class QBField {
 		this.id = rfc4122.v4();
 
 		if(options){
-			if(options.quickbase && (options.quickbase as QuickBase).CLASS_NAME === 'QuickBase'){
-				this._qb = (options.quickbase as QuickBase);
+			const {
+				quickbase,
+				...classOptions
+			} = options || {};
+
+			if(quickbase){
+				// @ts-ignore
+				if(quickbase && quickbase.CLASS_NAME === 'QuickBase'){
+					this._qb = quickbase as QuickBase;
+				}else{
+					this._qb = new QuickBase(quickbase as QuickBaseOptions);
+				}
 			}else{
-				this._qb = new QuickBase(options.quickbase as QuickBaseOptions);
+				this._qb = new QuickBase();
 			}
 
-			delete options.quickbase;
-
-			const settings = merge(QBField.defaults, options || {});
+			const settings = merge(QBField.defaults, classOptions);
 
 			this.setTableId(settings.tableId)
 				.setFid(settings.fid);
@@ -160,7 +166,7 @@ export class QBField {
 			this.clear();
 
 			return results;
-		}catch(err){
+		}catch(err: any){
 			if(err.description === `Field: ${fid} was not found.`){
 				this.clear();
 
@@ -176,7 +182,7 @@ export class QBField {
 
 	/**
 	 * Get an attribute value
-	 * 
+	 *
 	 * @param attribute Quick Base Field attribute name
 	 */
 	get(attribute: 'noWrap'): boolean;
@@ -235,7 +241,7 @@ export class QBField {
 
 	/**
 	 * Get the Quick Base Field usage
-	 * 
+	 *
 	 * `.loadUsage()` must be called first
 	 */
 	getUsage(): QuickBaseFieldUsage {
@@ -275,13 +281,13 @@ export class QBField {
 	/**
 	 * If a field id is not defined, this will execute the createField option. After a successful
 	 * createField, or if a field id was previously defined, this will execute an updateField.
-	 * 
+	 *
 	 * If `attributesToSave` is defined, then only configured attributes in this array will be saved.
-	 * 
+	 *
 	 * If this executes a createField, the newly assigned Field ID is automatically stored internally.
-	 * 
+	 *
 	 * After a successful save, all new attributes are available for use.
-	 * 
+	 *
 	 * @param attributesToSave Array of attributes to save
 	 */
 	async save(attributesToSave?: QBFieldAttributeSavable[]): Promise<QuickBaseResponseField> {
@@ -330,8 +336,7 @@ export class QBField {
 			data[attribute] = this.get(attribute);
 		});
 
-		let results: QuickBaseResponseUpdateField | QuickBaseResponseCreateField;
-
+		let results: Record<string, any>;
 
 		if(this.get('id') > 0){
 			data.fieldId = this.get('id');
@@ -350,7 +355,7 @@ export class QBField {
 
 	/**
 	 * Sets the passed in `value` associated with the `attribute` argument.
-	 * 
+	 *
 	 * @param attribute Quick Base Field attribute name
 	 * @param value Attribute value
 	 */
@@ -390,9 +395,9 @@ export class QBField {
 
 	/**
 	 * Sets the defined Field ID
-	 * 
+	 *
 	 * An alias for `.set('id', 6)` and `.set('fid', 6)`.
-	 * 
+	 *
 	 * @param fid Quick Base Field ID
 	 */
 	setFid(fid: number): QBField {
@@ -403,9 +408,9 @@ export class QBField {
 
 	/**
 	 * Sets the defined Table ID
-	 * 
+	 *
 	 * An alias for `.set('tableId', 'xxxxxxxxx')`.
-	 * 
+	 *
 	 * @param tableId Quick Base Field Table ID
 	 */
 	setTableId(tableId: string): QBField {
@@ -480,14 +485,14 @@ export class QBField {
 			throw new TypeError('json argument must be type of object or a valid JSON string');
 		}
 
-		const newField = new QBField();		
+		const newField = new QBField();
 
 		return newField.fromJSON(json);
 	}
 
 	/**
 	 * Returns a new QBField instance built off of `options`, that inherits configuration data from the passed in `attributes` argument.
-	 * 
+	 *
 	 * @param options QBField instance options
 	 * @param attributes Quick Base Field attribute data
 	 */
@@ -499,7 +504,7 @@ export class QBField {
 				newField.set(attribute, attributes[attribute]);
 			});
 		}
-	
+
 		return newField;
 	};
 
