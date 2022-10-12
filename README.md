@@ -27,7 +27,7 @@ Install
 -------
 ```
 # Install
-$ npm install --save quickbase qb-field
+$ npm install --save qb-field
 ```
 
 Documentation
@@ -82,9 +82,9 @@ var qbField = new QBField({
 });
 
 // Using a Temporary Token
-quickbase.getTempToken().then(function(results){
-    quickbase.setTempToken(results.temporaryAuthorization);
-
+quickbase.getTempTokenDBID({
+    dbid: 'xxxxxxxxx'
+}).then(function(results){
     return qbField.load();
 }).then(function(results){
     console.log(qbField.get('label'), results.label);

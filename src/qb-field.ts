@@ -5,12 +5,14 @@ import merge from 'deepmerge';
 import RFC4122 from 'rfc4122';
 import {
 	QuickBase,
+	QuickBaseError,
 	QuickBaseOptions,
-	QuickBaseResponseField,
+	QuickBaseRequest,
+	QuickBaseResponseCreateField,
 	QuickBaseResponseDeleteFields,
-	QuickBaseFieldUsage,
-	QuickBaseResponseFieldPermission,
-	fieldType
+	QuickBaseResponseGetField,
+	QuickBaseResponseGetFieldUsage,
+	QuickBaseResponseUpdateField
 } from 'quickbase';
 
 /* Globals */
@@ -18,23 +20,54 @@ const VERSION = require('../package.json').version;
 const IS_BROWSER = typeof(window) !== 'undefined';
 const rfc4122 = new RFC4122();
 
-/* Main Class */
-export class QBField {
+const BASE_USAGE = {
+	actions: {
+		count: 0
+	},
+	appHomePages: {
+		count: 0
+	},
+	defaultReports: {
+		count: 0
+	},
+	exactForms: {
+		count: 0
+	},
+	fields: {
+		count: 0
+	},
+	forms: {
+		count: 0
+	},
+	notifications: {
+		count: 0
+	},
+	personalReports: {
+		count: 0
+	},
+	relationships: {
+		count: 0
+	},
+	reminders: {
+		count: 0
+	},
+	reports: {
+		count: 0
+	},
+	roles: {
+		count: 0
+	},
+	webhooks: {
+		count: 0
+	}
+};
 
-	/**
-	 * The class name
-	 *
-	 * Loading multiple instances of this class results in failed `instanceof` checks.
-	 * `Function.name` is corrupted by the browserify/minify processes.
-	 * Allow code to check if an object is this class by look at this `CLASS_NAME`
-	 * property. Code can further check `VERSION` to ensure correct versioning
-	 */
+/* Main Class */
+export class QBField<CustomGetSet extends Object = Record<any, any>> {
+
 	public readonly CLASS_NAME = 'QBField';
 	static readonly CLASS_NAME = 'QBField';
 
-	/**
-	 * The loaded library version
-	 */
 	static readonly VERSION: string = VERSION;
 
 	/**
@@ -67,76 +100,30 @@ export class QBField {
 	private _qb: QuickBase;
 	private _tableId: string = '';
 	private _fid: number = -1;
-	private _data: Partial<QuickBaseResponseField> = {};
-	private _usage: QuickBaseFieldUsage = {
-		actions: {
-			count: 0
-		},
-		appHomePages: {
-			count: 0
-		},
-		defaultReports: {
-			count: 0
-		},
-		exactForms: {
-			count: 0
-		},
-		fields: {
-			count: 0
-		},
-		forms: {
-			count: 0
-		},
-		notifications: {
-			count: 0
-		},
-		personalReports: {
-			count: 0
-		},
-		relationships: {
-			count: 0
-		},
-		reminders: {
-			count: 0
-		},
-		reports: {
-			count: 0
-		},
-		roles: {
-			count: 0
-		},
-		webhooks: {
-			count: 0
-		}
-	};
+	private _data: Record<any, any> = {};
+	private _usage: QuickBaseResponseGetFieldUsage[0]['usage'] = merge({}, BASE_USAGE);
 
 	constructor(options?: Partial<QBFieldOptions>){
 		this.id = rfc4122.v4();
 
-		if(options){
-			const {
-				quickbase,
-				...classOptions
-			} = options || {};
+		const {
+			quickbase,
+			...classOptions
+		} = options || {};
 
-			if(quickbase){
-				// @ts-ignore
-				if(quickbase && quickbase.CLASS_NAME === 'QuickBase'){
-					this._qb = quickbase as QuickBase;
-				}else{
-					this._qb = new QuickBase(quickbase as QuickBaseOptions);
-				}
-			}else{
-				this._qb = new QuickBase();
-			}
-
-			const settings = merge(QBField.defaults, classOptions);
-
-			this.setTableId(settings.tableId)
-				.setFid(settings.fid);
+		if(QuickBase.IsQuickBase(quickbase)){
+			this._qb = quickbase;
 		}else{
-			this._qb = new QuickBase();
+			this._qb = new QuickBase(merge.all([
+				QBField.defaults.quickbase,
+				quickbase || {}
+			]));
 		}
+
+		const settings = merge(QBField.defaults, classOptions);
+
+		this.setTableId(settings.tableId)
+			.setFid(settings.fid);
 
 		return this;
 	}
@@ -144,9 +131,10 @@ export class QBField {
 	/**
 	 * This method clears the QBField instance of any trace of the existing field, but preserves defined connection settings.
 	 */
-	clear(): QBField {
+	clear(): this {
 		this._fid = -1;
 		this._data = {};
+		this._usage = merge({}, BASE_USAGE);
 
 		return this;
 	}
@@ -154,26 +142,42 @@ export class QBField {
 	/**
 	 * This method deletes the field from QuickBase, then calls `.clear()`.
 	 */
-	async delete(): Promise<QuickBaseResponseDeleteFields> {
+	async delete({ requestOptions }: QuickBaseRequest = {}): Promise<QuickBaseResponseDeleteFields> {
 		const fid = this.get('id');
+		const fin = (deletedFieldIds: number[]) => {
+			this.clear();
+
+			return {
+				deletedFieldIds,
+				errors: []
+			};
+		}
+
+		if(!fid){
+			return fin([ fid ]);
+		}
 
 		try {
-			const results = await this._qb.deleteFields({
-				tableId: this.get('tableId'),
-				fieldIds: [ fid ]
+			const {
+				headers,
+				data
+			} = await this._qb.deleteFields({
+				tableId: this.getTableId(),
+				fieldIds: [ fid ],
+				returnAxios: true,
+				requestOptions
 			});
+
+			if(data.errors && data.errors.length > 0){
+				throw new QuickBaseError(1000, 'Unable to delete field', data.errors[0], headers['qb-api-ray']);
+			}
 
 			this.clear();
 
-			return results;
+			return data;
 		}catch(err: any){
 			if(err.description === `Field: ${fid} was not found.`){
-				this.clear();
-
-				return {
-					deletedFieldIds: [ fid ],
-					errors: []
-				};
+				return fin([ fid ]);
 			}
 
 			throw err;
@@ -185,33 +189,16 @@ export class QBField {
 	 *
 	 * @param attribute Quick Base Field attribute name
 	 */
-	get(attribute: 'noWrap'): boolean;
-	get(attribute: 'bold'): boolean;
-	get(attribute: 'required'): boolean;
-	get(attribute: 'appearsByDefault'): boolean;
-	get(attribute: 'addToForms'): boolean;
-	get(attribute: 'findEnabled'): boolean;
-	get(attribute: 'unique'): boolean;
-	get(attribute: 'doesDataCopy'): boolean;
-	get(attribute: 'audited'): boolean;
-	get(attribute: 'id'): number;
-	get(attribute: 'fid'): number;
+	get<T extends keyof QuickBaseResponseGetField>(attribute: T): QuickBaseResponseGetField[T] | undefined;
+	get<T extends keyof CustomGetSet>(attribute: T): CustomGetSet[T];
 	get(attribute: 'tableId'): string;
-	get(attribute: 'label'): string;
-	get(attribute: 'mode'): string;
-	get(attribute: 'fieldHelp'): string;
-	get(attribute: 'fieldType'): fieldType;
-	get(attribute: 'type'): fieldType;
-	get(attribute: 'properties'): QuickBaseResponseField['properties'];
-	get(attribute: 'permissions'): QuickBaseResponseFieldPermission[];
-	get(attribute: 'usage'): QuickBaseFieldUsage;
-	get(attribute: QBFieldAttribute): fieldType | QuickBaseResponseFieldPermission[] | QuickBaseFieldUsage | QuickBaseResponseField['properties'] | string | number | boolean | undefined;
-	get(attribute: string): any;
-	get(attribute: string): any {
-		if(attribute === 'type'){
-			attribute = 'fieldType';
-		}
-
+	get(attribute: 'fid'): number;
+	get(attribute: 'id'): number;
+	get(attribute: 'type'): string;
+	get(attribute: 'addToForms'): boolean;
+	get(attribute: 'usage'): QuickBaseResponseGetFieldUsage[0]['usage'];
+	get<T = any>(attribute: any): T;
+	get(attribute: any): any {
 		if(attribute === 'tableId'){
 			return this.getTableId();
 		}else
@@ -222,7 +209,11 @@ export class QBField {
 			return this.getUsage();
 		}
 
-		return (this._data as Indexable)[attribute];
+		if(attribute === 'type'){
+			attribute = 'fieldType';
+		}
+
+		return this._data[attribute];
 	}
 
 	/**
@@ -244,38 +235,40 @@ export class QBField {
 	 *
 	 * `.loadUsage()` must be called first
 	 */
-	getUsage(): QuickBaseFieldUsage {
+	getUsage(): QuickBaseResponseGetFieldUsage[0]['usage'] {
 		return this._usage;
 	}
 
 	/**
 	 * Load the Quick Base Field attributes and permissions
 	 */
-	async load(): Promise<QuickBaseResponseField> {
+	async load({ requestOptions }: QuickBaseRequest = {}): Promise<QuickBaseResponseGetField> {
 		const results = await this._qb.getField({
-			tableId: this.get('tableId'),
-			fieldId: this.get('id')
+			tableId: this.getTableId(),
+			fieldId: this.getFid(),
+			requestOptions
 		});
 
-		getObjectKeys(results).forEach((attribute) => {
-			this.set(attribute, results[attribute]);
+		Object.entries(results).forEach(([ attribute, value ]) => {
+			this.set(attribute as keyof QuickBaseResponseGetField, value);
 		});
 
-		return this._data as QuickBaseResponseField;
+		return this._data as QuickBaseResponseGetField;
 	}
 
 	/**
 	 * Load the Quick Base Field usage
 	 */
-	async loadUsage(): Promise<QuickBaseFieldUsage> {
+	async loadUsage({ requestOptions }: QuickBaseRequest = {}): Promise<QuickBaseResponseGetFieldUsage[0]['usage']> {
 		const results = await this._qb.getFieldUsage({
-			tableId: this.get('tableId'),
-			fieldId: this.get('fid')
+			tableId: this.getTableId(),
+			fieldId: this.getFid(),
+			requestOptions
 		});
 
 		this.set('usage', results);
 
-		return this.get('usage');
+		return this.getUsage();
 	}
 
 	/**
@@ -290,10 +283,16 @@ export class QBField {
 	 *
 	 * @param attributesToSave Array of attributes to save
 	 */
-	async save(attributesToSave?: QBFieldAttributeSavable[]): Promise<QuickBaseResponseField> {
+	async save({
+		attributesToSave,
+		requestOptions
+	}: QuickBaseRequest & {
+		attributesToSave?: QBFieldAttributeSavable[];
+	} = {}): Promise<QuickBaseResponseGetField> {
 		const data: any = {
-			tableId: this.get('tableId'),
-			label: this.get('label')
+			tableId: this.getTableId(),
+			label: this.get('label'),
+			requestOptions
 		};
 
 		const saveable: QBFieldAttributeSavable[] = [
@@ -303,11 +302,10 @@ export class QBField {
 			'noWrap',
 			'bold',
 			'appearsByDefault',
-			'findEnabled',
-			'addToForms'
+			'findEnabled'
 		];
 
-		if(this.get('id') > 0){
+		if(this.getFid() > 0){
 			saveable.push(
 				'required',
 				'unique'
@@ -336,21 +334,21 @@ export class QBField {
 			data[attribute] = this.get(attribute);
 		});
 
-		let results: Record<string, any>;
+		let results: QuickBaseResponseCreateField | QuickBaseResponseUpdateField;
 
-		if(this.get('id') > 0){
-			data.fieldId = this.get('id');
+		if(this.getFid() > 0){
+			data.fieldId = this.getFid();
 
 			results = await this._qb.updateField(data);
 		}else{
 			results = await this._qb.createField(data);
 		}
 
-		getObjectKeys(results).forEach((attribute) => {
-			this.set(attribute, results[attribute]);
+		Object.entries(results).forEach(([ attribute, val ]) => {
+			this.set(attribute as keyof QuickBaseResponseUpdateField, val);
 		});
 
-		return this._data as QuickBaseResponseField;
+		return this._data as QuickBaseResponseUpdateField;
 	}
 
 	/**
@@ -359,36 +357,30 @@ export class QBField {
 	 * @param attribute Quick Base Field attribute name
 	 * @param value Attribute value
 	 */
-	set(attribute: 'noWrap', value: boolean): QBField;
-	set(attribute: 'bold', value: boolean): QBField;
-	set(attribute: 'required', value: boolean): QBField;
-	set(attribute: 'appearsByDefault', value: boolean): QBField;
-	set(attribute: 'addToForms', value: boolean): QBField;
-	set(attribute: 'findEnabled', value: boolean): QBField;
-	set(attribute: 'unique', value: boolean): QBField;
-	set(attribute: 'doesDataCopy', value: boolean): QBField;
-	set(attribute: 'audited', value: boolean): QBField;
-	set(attribute: 'id', value: number): QBField;
-	set(attribute: 'fid', value: number): QBField;
-	set(attribute: 'tableId', value: string): QBField;
-	set(attribute: 'label', value: string): QBField;
-	set(attribute: 'mode', value: string): QBField;
-	set(attribute: 'fieldHelp', value: string): QBField;
-	set(attribute: 'fieldType', value: fieldType): QBField;
-	set(attribute: 'type', value: fieldType): QBField;
-	set(attribute: 'properties', value: QuickBaseResponseField['properties']): QBField;
-	set(attribute: 'permissions', value: QuickBaseResponseField['permissions']): QBField;
-	set(attribute: QBFieldAttribute, value: any): QBField;
-	set(attribute: string, value: any): QBField;
-	set(attribute: string, value: any): QBField {
+	set<T extends keyof QuickBaseResponseGetField>(attribute: T, value: QuickBaseResponseGetField[T]): this;
+	set<T extends keyof CustomGetSet>(attribute: T, value: CustomGetSet[T]): this;
+	set(attribute: 'tableId', value: string): this;
+	set(attribute: 'fid', value: number): this;
+	set(attribute: 'id', value: number): this;
+	set(attribute: 'usage', value: QuickBaseResponseGetFieldUsage[0]['usage']): this;
+	set(attribute: 'addToForms', value: boolean): this;
+	set<T = any>(attribute: string, value: T): this;
+	set(attribute: string, value: any): this {
 		if(attribute === 'tableId'){
-			this.setTableId(value);
+			return this.setTableId(value);
 		}else
 		if(attribute === 'fid' || attribute === 'id'){
-			this.setFid(value);
-		}
+			return this.setFid(value);
+		}else
+		if(attribute === 'usage'){
+			this._usage = value;
+		}else{
+			if(attribute === 'type'){
+				attribute = 'fieldType';
+			}
 
-		(this._data as Indexable)[attribute] = value;
+			this._data[attribute] = value;
+		}
 
 		return this;
 	}
@@ -400,7 +392,7 @@ export class QBField {
 	 *
 	 * @param fid Quick Base Field ID
 	 */
-	setFid(fid: number): QBField {
+	setFid(fid: number): this {
 		this._fid = fid;
 
 		return this;
@@ -413,7 +405,7 @@ export class QBField {
 	 *
 	 * @param tableId Quick Base Field Table ID
 	 */
-	setTableId(tableId: string): QBField {
+	setTableId(tableId: string): this {
 		this._tableId = tableId;
 
 		return this;
@@ -424,7 +416,7 @@ export class QBField {
 	 *
 	 * @param json QBField serialized JSON
 	 */
-	fromJSON(json: string | QBFieldJSON): QBField {
+	fromJSON(json: string | QBFieldJSON): this {
 		if(typeof(json) === 'string'){
 			json = JSON.parse(json);
 		}
@@ -438,16 +430,16 @@ export class QBField {
 		}
 
 		if(json.tableId){
-			this.set('tableId', json.tableId);
+			this.setTableId(json.tableId);
 		}
 
 		if(json.fid || json.id){
-			this.set('fid', json.fid || json.id || -1);
+			this.setFid(json.fid || json.id || -1);
 		}
 
 		if(json.data){
-			getObjectKeys(json.data).forEach((name) => {
-				this.set(name, (json as QBFieldJSON).data![name]);
+			Object.entries(json.data).forEach(([ key, value ]) => {
+				this.set(key as keyof QuickBaseResponseGetField, value);
 			});
 		}
 
@@ -464,8 +456,8 @@ export class QBField {
 	toJSON(): QBFieldJSON {
 		return {
 			quickbase: this._qb.toJSON(),
-			tableId: this.get('tableId'),
-			fid: this.get('fid'),
+			tableId: this.getTableId(),
+			fid: this.getFid(),
 			data: merge({}, this._data),
 			usage: this.getUsage()
 		};
@@ -491,17 +483,26 @@ export class QBField {
 	}
 
 	/**
+	 * Test if a variable is a `qb-field` object
+	 * 
+	 * @param obj A variable you'd like to test
+	 */
+	static IsQBField(obj: any): obj is QBField {
+		return ((obj || {}) as QBField).CLASS_NAME === QBField.CLASS_NAME;
+	}
+
+	/**
 	 * Returns a new QBField instance built off of `options`, that inherits configuration data from the passed in `attributes` argument.
 	 *
 	 * @param options QBField instance options
 	 * @param attributes Quick Base Field attribute data
 	 */
-	static newField(options: Partial<QBFieldOptions>, attributes?: QuickBaseResponseField): QBField {
+	static newField(options: Partial<QBFieldOptions>, attributes?: Partial<QuickBaseResponseGetField> & Record<any, any>): QBField {
 		const newField = new QBField(options);
 
 		if(attributes){
-			getObjectKeys(attributes).forEach((attribute) => {
-				newField.set(attribute, attributes[attribute]);
+			Object.entries(attributes).forEach(([ attribute, value ]) => {
+				newField.set(attribute, value);
 			});
 		}
 
@@ -510,36 +511,26 @@ export class QBField {
 
 }
 
-/* Helpers */
-function getObjectKeys<O>(obj: O): (keyof O)[] {
-    return Object.keys(obj) as (keyof O)[];
-}
-
-/* Interfaces */
-export type QBFieldAttribute = keyof QuickBaseResponseField | 'type' | 'fid' | 'usage' | 'id';
+/* Types */
+export type QBFieldAttribute = keyof QuickBaseResponseGetField;
 export type QBFieldAttributeSavable = Exclude<QBFieldAttribute, 'usage' | 'type' | 'doesDataCopy' | 'fid'>;
 
-interface Indexable {
-	[index: string]: any;
-}
-
-export interface QBFieldOptions {
+export type QBFieldOptions = {
 	quickbase: QuickBaseOptions | QuickBase;
 	tableId: string;
 	fid: number;
 }
 
-export interface QBFieldJSON {
+export type QBFieldJSON = {
 	quickbase?: QuickBaseOptions;
 	tableId: string;
 	fid: number;
 	id?: number;
-	data?: QuickBaseResponseField;
-	usage?: QuickBaseFieldUsage;
+	data?: Partial<QuickBaseResponseGetField> & Record<any, any>;
+	usage?: QuickBaseResponseGetFieldUsage[0]['usage'];
 }
 
 /* Export to Browser */
 if(IS_BROWSER){
-	// @ts-ignore
 	window.QBField = QBField;
 }
