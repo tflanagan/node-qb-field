@@ -189,15 +189,13 @@ export class QBField<CustomGetSet extends Object = Record<any, any>> {
 	 *
 	 * @param attribute Quick Base Field attribute name
 	 */
-	get<T extends keyof QuickBaseResponseGetField>(attribute: T): QuickBaseResponseGetField[T] | undefined;
-	get<T extends keyof CustomGetSet>(attribute: T): CustomGetSet[T];
+	get<P extends string>(prop: P): P extends keyof QuickBaseResponseGetField ? QuickBaseResponseGetField[P] : (P extends keyof CustomGetSet ? CustomGetSet[P] : any);
 	get(attribute: 'tableId'): string;
 	get(attribute: 'fid'): number;
 	get(attribute: 'id'): number;
 	get(attribute: 'type'): string;
 	get(attribute: 'addToForms'): boolean;
 	get(attribute: 'usage'): QuickBaseResponseGetFieldUsage[0]['usage'];
-	get<T = any>(attribute: any): T;
 	get(attribute: any): any {
 		if(attribute === 'tableId'){
 			return this.getTableId();
@@ -266,7 +264,7 @@ export class QBField<CustomGetSet extends Object = Record<any, any>> {
 			requestOptions
 		});
 
-		this.set('usage', results);
+		this.set('usage', results[0].usage);
 
 		return this.getUsage();
 	}
@@ -357,14 +355,13 @@ export class QBField<CustomGetSet extends Object = Record<any, any>> {
 	 * @param attribute Quick Base Field attribute name
 	 * @param value Attribute value
 	 */
-	set<T extends keyof QuickBaseResponseGetField>(attribute: T, value: QuickBaseResponseGetField[T]): this;
-	set<T extends keyof CustomGetSet>(attribute: T, value: CustomGetSet[T]): this;
+	set<P extends string>(prop: P, value: P extends keyof QuickBaseResponseGetField ? QuickBaseResponseGetField[P] : (P extends keyof CustomGetSet ? CustomGetSet[P] : any)): void;
 	set(attribute: 'tableId', value: string): this;
 	set(attribute: 'fid', value: number): this;
 	set(attribute: 'id', value: number): this;
-	set(attribute: 'usage', value: QuickBaseResponseGetFieldUsage[0]['usage']): this;
+	set(attribute: 'type', value: string): this;
 	set(attribute: 'addToForms', value: boolean): this;
-	set<T = any>(attribute: string, value: T): this;
+	set(attribute: 'usage', value: QuickBaseResponseGetFieldUsage[0]['usage']): this;
 	set(attribute: string, value: any): this {
 		if(attribute === 'tableId'){
 			return this.setTableId(value);
@@ -507,7 +504,7 @@ export class QBField<CustomGetSet extends Object = Record<any, any>> {
 		}
 
 		return newField;
-	};
+	}
 
 }
 
