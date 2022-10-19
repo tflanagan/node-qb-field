@@ -529,5 +529,5 @@ export type QBFieldJSON = {
 
 /* Export to Browser */
 if(IS_BROWSER){
-	window.QBField = QBField;
+	window.QBField = exports;
 }
