@@ -189,13 +189,15 @@ export class QBField<CustomGetSet extends Object = Record<any, any>> {
 	 *
 	 * @param attribute Quick Base Field attribute name
 	 */
-	get<P extends string>(prop: P): P extends keyof QuickBaseResponseGetField ? QuickBaseResponseGetField[P] : (P extends keyof CustomGetSet ? CustomGetSet[P] : any);
 	get(attribute: 'tableId'): string;
 	get(attribute: 'fid'): number;
 	get(attribute: 'id'): number;
 	get(attribute: 'type'): string;
 	get(attribute: 'addToForms'): boolean;
 	get(attribute: 'usage'): QuickBaseResponseGetFieldUsage[0]['usage'];
+	get<P extends keyof QuickBaseResponseGetField>(prop: P): QuickBaseResponseGetField[P];
+	get<P extends keyof CustomGetSet>(prop: P): CustomGetSet[P];
+	get<P extends string>(prop: P): P extends keyof QuickBaseResponseGetField ? QuickBaseResponseGetField[P] : (P extends keyof CustomGetSet ? CustomGetSet[P] : any);
 	get(attribute: any): any {
 		if(attribute === 'tableId'){
 			return this.getTableId();
@@ -355,13 +357,15 @@ export class QBField<CustomGetSet extends Object = Record<any, any>> {
 	 * @param attribute Quick Base Field attribute name
 	 * @param value Attribute value
 	 */
-	set<P extends string>(prop: P, value: P extends keyof QuickBaseResponseGetField ? QuickBaseResponseGetField[P] : (P extends keyof CustomGetSet ? CustomGetSet[P] : any)): void;
 	set(attribute: 'tableId', value: string): this;
 	set(attribute: 'fid', value: number): this;
 	set(attribute: 'id', value: number): this;
 	set(attribute: 'type', value: string): this;
 	set(attribute: 'addToForms', value: boolean): this;
 	set(attribute: 'usage', value: QuickBaseResponseGetFieldUsage[0]['usage']): this;
+	set<P extends keyof QuickBaseResponseGetField>(prop: P, value: QuickBaseResponseGetField[P]): void;
+	set<P extends keyof CustomGetSet>(prop: P, value: CustomGetSet[P]): void;
+	set<P extends string>(prop: P, value: P extends keyof QuickBaseResponseGetField ? QuickBaseResponseGetField[P] : (P extends keyof CustomGetSet ? CustomGetSet[P] : any)): void;
 	set(attribute: string, value: any): this {
 		if(attribute === 'tableId'){
 			return this.setTableId(value);
