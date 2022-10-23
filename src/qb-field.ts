@@ -230,6 +230,13 @@ export class QBField<CustomGetSet extends Object = Record<any, any>> {
 		return this._tableId;
 	}
 
+	async getTempToken({ requestOptions }: QuickBaseRequest): Promise<void> {
+		this._qb.getTempTokenDBID({
+			dbid: this.getTableId(),
+			requestOptions
+		});
+	}
+
 	/**
 	 * Get the Quick Base Field usage
 	 *
