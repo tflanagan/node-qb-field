@@ -137,8 +137,8 @@ ava.serial('QBField.fromJSON()', async (t) => {
 	return t.truthy(newQBField.get('fid') === json.fid);
 });
 
-ava.serial('QBField.newField()', async (t) => {
-	const newQBField = QBField.newField(qbFieldOptions, {
+ava.serial('QBField.NewField()', async (t) => {
+	const newQBField = QBField.NewField(qbFieldOptions, {
 		id: qbField.getFid(),
 		...qbField.toJSON().data
 	});

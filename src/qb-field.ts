@@ -505,7 +505,7 @@ export class QBField<CustomGetSet extends Object = Record<any, any>> {
 	 * @param options QBField instance options
 	 * @param attributes Quick Base Field attribute data
 	 */
-	static newField(options: Partial<QBFieldOptions>, attributes?: Partial<QuickBaseResponseGetField> & Record<any, any>): QBField {
+	static NewField(options: Partial<QBFieldOptions>, attributes?: Partial<QuickBaseResponseGetField> & Record<any, any>): QBField {
 		const newField = new QBField(options);
 
 		if(attributes){
