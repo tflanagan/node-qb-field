@@ -27,6 +27,9 @@ const BASE_USAGE = {
 	appHomePages: {
 		count: 0
 	},
+	dashboards: {
+		count: 0
+	},
 	defaultReports: {
 		count: 0
 	},
@@ -55,6 +58,12 @@ const BASE_USAGE = {
 		count: 0
 	},
 	roles: {
+		count: 0
+	},
+	tableImports: {
+		count: 0
+	},
+	tableRules: {
 		count: 0
 	},
 	webhooks: {
@@ -492,7 +501,7 @@ export class QBField<CustomGetSet extends Object = Record<any, any>> {
 
 	/**
 	 * Test if a variable is a `qb-field` object
-	 * 
+	 *
 	 * @param obj A variable you'd like to test
 	 */
 	static IsQBField(obj: any): obj is QBField {
